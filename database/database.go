@@ -1,67 +1,95 @@
 package database
 
 import (
-	"database/sql"
-	"example/web-service-gin/models"
+	"context"
+	"fmt"
 	"log"
 	"os"
 
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	_ "modernc.org/sqlite" // Pure Go SQLite driver (no CGO required)
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Database holds the database connection and underlying SQL DB
+// Database holds the database connection pool
 type Database struct {
-	DB    *gorm.DB
-	sqlDB *sql.DB
+	Pool *pgxpool.Pool
 }
 
-// Connect initializes the database connection
-func Connect() (*Database, error) {
-	// Get database name from environment variable, default to "albums.db"
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "albums.db"
+// Connect initializes the PostgreSQL database connection pool
+func Connect(ctx context.Context) (*Database, error) {
+	// Get database connection string from environment
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		// Build connection string from individual components
+		host := getEnvOrDefault("DB_HOST", "localhost")
+		port := getEnvOrDefault("DB_PORT", "5432")
+		user := getEnvOrDefault("DB_USER", "postgres")
+		password := getEnvOrDefault("DB_PASSWORD", "postgres")
+		dbName := getEnvOrDefault("DB_NAME", "albums")
+		sslMode := getEnvOrDefault("DB_SSLMODE", "disable")
+
+		dbURL = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+			user, password, host, port, dbName, sslMode)
 	}
 
-	// Open database with pure Go SQLite driver
-	sqlDB, err := sql.Open("sqlite", dbName)
+	// Create connection pool
+	config, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse database URL: %w", err)
 	}
 
-	// Use GORM with the existing connection
-	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
-		sqlDB.Close()
-		return nil, err
+		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	log.Printf("Database connection established: %s\n", dbName)
+	// Verify connection
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("unable to ping database: %w", err)
+	}
 
-	return &Database{
-		DB:    gormDB,
-		sqlDB: sqlDB,
-	}, nil
+	log.Println("Database connection established")
+
+	return &Database{Pool: pool}, nil
 }
 
 // Migrate runs database migrations
-func (d *Database) Migrate() error {
-	err := d.DB.AutoMigrate(&models.Album{})
+func (d *Database) Migrate(ctx context.Context) error {
+	query := `
+	CREATE TABLE IF NOT EXISTS albums (
+		id SERIAL PRIMARY KEY,
+		title VARCHAR(255) NOT NULL,
+		artist VARCHAR(255) NOT NULL,
+		price DECIMAL(10, 2) NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		deleted_at TIMESTAMP
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_albums_deleted_at ON albums(deleted_at);
+	`
+
+	_, err := d.Pool.Exec(ctx, query)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	log.Println("Database migration completed")
 	return nil
 }
 
-// Close closes the database connection
-func (d *Database) Close() error {
-	if d.sqlDB != nil {
+// Close closes the database connection pool
+func (d *Database) Close() {
+	if d.Pool != nil {
 		log.Println("Closing database connection...")
-		return d.sqlDB.Close()
+		d.Pool.Close()
 	}
-	return nil
+}
+
+// Helper function to get environment variable with default
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

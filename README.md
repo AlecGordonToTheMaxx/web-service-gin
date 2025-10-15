@@ -1,6 +1,6 @@
 # Albums API - Go Gin CRUD Service
 
-A RESTful API service built with Go, Gin framework, and GORM for managing an albums collection. Features full CRUD operations with SQLite database (using pure Go - no CGO required).
+A RESTful API service built with Go, Gin framework, and pgx for managing an albums collection. Features full CRUD operations with PostgreSQL database using jackc/pgx - a high-performance pure Go PostgreSQL driver.
 
 ## Project Structure
 
@@ -20,11 +20,13 @@ web-service-gin/
 ## Features
 
 - RESTful API with CRUD operations
-- GORM ORM with SQLite database
-- Pure Go SQLite driver (no CGO dependency)
+- PostgreSQL database with pgx/v5 driver
+- Connection pooling for high performance
+- Raw SQL queries with full control (no ORM magic)
 - Environment-based configuration
 - Clean architecture with repository pattern
 - Dependency injection for testability
+- Context-aware database operations
 - Graceful shutdown handling
 - Input validation and proper error handling
 - Soft delete support
@@ -33,38 +35,73 @@ web-service-gin/
 ## Prerequisites
 
 - Go 1.19 or higher
-- No CGO required (works on Windows without gcc)
+- PostgreSQL 12 or higher
+- No CGO required (pure Go implementation)
 
 ## Setup
 
-1. **Clone the repository**
+1. **Install PostgreSQL**
+
+   Download and install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/)
+
+   Or using Docker:
+   ```bash
+   docker run --name albums-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
+   ```
+
+2. **Create the database**
+   ```bash
+   # Connect to PostgreSQL
+   psql -U postgres
+
+   # Create database
+   CREATE DATABASE albums;
+
+   # Exit psql
+   \q
+   ```
+
+3. **Clone the repository**
    ```bash
    cd web-service-gin
    ```
 
-2. **Install dependencies**
+4. **Install dependencies**
    ```bash
    go mod download
    ```
 
-3. **Configure environment variables**
+5. **Configure environment variables**
    ```bash
    cp .env.example .env
    ```
 
    Edit `.env` to customize:
    ```env
-   DB_NAME=albums.db
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USER=postgres
+   DB_PASSWORD=postgres
+   DB_NAME=albums
+   DB_SSLMODE=disable
    SERVER_PORT=8080
    GIN_MODE=debug
    ```
 
-4. **Run the application**
+   Or use a single DATABASE_URL:
+   ```env
+   DATABASE_URL=postgres://postgres:postgres@localhost:5432/albums?sslmode=disable
+   ```
+
+6. **Run the application**
    ```bash
    go run main.go
    ```
 
-   The server will start on `http://localhost:8080` (or your configured port).
+   The application will:
+   - Connect to PostgreSQL
+   - Automatically create the `albums` table
+   - Start the server on `http://localhost:8080`
 
 ## API Endpoints
 
@@ -87,13 +124,13 @@ http://localhost:8080
 
 ```json
 {
-  "ID": 1,
-  "CreatedAt": "2025-10-15T12:00:00Z",
-  "UpdatedAt": "2025-10-15T12:00:00Z",
-  "DeletedAt": null,
+  "id": 1,
   "title": "Album Title",
   "artist": "Artist Name",
-  "price": 29.99
+  "price": 29.99,
+  "created_at": "2025-10-15T12:00:00Z",
+  "updated_at": "2025-10-15T12:00:00Z",
+  "deleted_at": null
 }
 ```
 
@@ -338,22 +375,39 @@ go build -o albums-api.exe main.go
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| DB_NAME | SQLite database file name | albums.db |
+| DB_HOST | PostgreSQL host | localhost |
+| DB_PORT | PostgreSQL port | 5432 |
+| DB_USER | Database user | postgres |
+| DB_PASSWORD | Database password | postgres |
+| DB_NAME | Database name | albums |
+| DB_SSLMODE | SSL mode | disable |
+| DATABASE_URL | Full connection string (optional) | - |
 | SERVER_PORT | Server port number | 8080 |
 | GIN_MODE | Gin mode (debug/release/test) | debug |
 
 ## Technologies Used
 
 - **[Gin](https://github.com/gin-gonic/gin)** - HTTP web framework
-- **[GORM](https://gorm.io/)** - ORM library
-- **[modernc.org/sqlite](https://gitlab.com/cznic/sqlite)** - Pure Go SQLite driver
+- **[pgx/v5](https://github.com/jackc/pgx)** - High-performance PostgreSQL driver and toolkit
+- **[PostgreSQL](https://www.postgresql.org/)** - Advanced open-source relational database
 - **[godotenv](https://github.com/joho/godotenv)** - Environment variable loader
+
+## Why pgx over GORM?
+
+- **Performance**: pgx is significantly faster than ORMs for PostgreSQL
+- **Control**: Write explicit SQL queries - no hidden behavior or N+1 queries
+- **PostgreSQL-specific**: Takes full advantage of PostgreSQL features
+- **Connection Pooling**: Built-in pgxpool for efficient connection management
+- **Type Safety**: Strong typing with PostgreSQL-specific types
+- **Lightweight**: No ORM overhead or reflection magic
 
 ## Notes
 
-- This project uses `modernc.org/sqlite`, a pure Go SQLite driver that doesn't require CGO
+- This project uses `jackc/pgx/v5`, a pure Go PostgreSQL driver (no CGO required)
 - Database uses soft deletes (records are marked as deleted, not removed)
-- All timestamps are managed automatically by GORM
+- Timestamps are managed via PostgreSQL DEFAULT values and application logic
+- Connection pooling is handled automatically by pgxpool
+- All database operations are context-aware for proper cancellation/timeout handling
 - The `.env` file is excluded from git for security
 
 ## License

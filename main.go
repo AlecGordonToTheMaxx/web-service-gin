@@ -25,20 +25,23 @@ func main() {
 		log.Println("Warning: .env file not found, using defaults")
 	}
 
+	// Create context for database initialization
+	ctx := context.Background()
+
 	// Initialize database connection
-	db, err := database.Connect()
+	db, err := database.Connect(ctx)
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 	defer db.Close()
 
 	// Run migrations
-	if err := db.Migrate(); err != nil {
+	if err := db.Migrate(ctx); err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 
 	// Initialize repository and controller
-	albumRepo := repository.NewAlbumRepository(db.DB)
+	albumRepo := repository.NewAlbumRepository(db.Pool)
 	albumCtrl := controllers.NewAlbumController(albumRepo)
 
 	// Create Gin router

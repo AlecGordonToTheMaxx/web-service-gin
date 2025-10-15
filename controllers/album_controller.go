@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // AlbumController handles album HTTP requests
@@ -23,7 +22,7 @@ func NewAlbumController(repo repository.AlbumRepository) *AlbumController {
 
 // GetAlbums retrieves all albums
 func (ctrl *AlbumController) GetAlbums(c *gin.Context) {
-	albums, err := ctrl.repo.FindAll()
+	albums, err := ctrl.repo.FindAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve albums"})
 		return
@@ -36,15 +35,15 @@ func (ctrl *AlbumController) GetAlbums(c *gin.Context) {
 func (ctrl *AlbumController) GetAlbum(c *gin.Context) {
 	// Validate and parse ID
 	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album ID"})
 		return
 	}
 
-	album, err := ctrl.repo.FindByID(uint(id))
+	album, err := ctrl.repo.FindByID(c.Request.Context(), id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Album not found"})
 			return
 		}
@@ -64,7 +63,7 @@ func (ctrl *AlbumController) CreateAlbum(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.repo.Create(&album); err != nil {
+	if err := ctrl.repo.Create(c.Request.Context(), &album); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create album"})
 		return
 	}
@@ -76,16 +75,16 @@ func (ctrl *AlbumController) CreateAlbum(c *gin.Context) {
 func (ctrl *AlbumController) UpdateAlbum(c *gin.Context) {
 	// Validate and parse ID
 	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album ID"})
 		return
 	}
 
 	// Check if album exists
-	album, err := ctrl.repo.FindByID(uint(id))
+	album, err := ctrl.repo.FindByID(c.Request.Context(), id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Album not found"})
 			return
 		}
@@ -105,7 +104,7 @@ func (ctrl *AlbumController) UpdateAlbum(c *gin.Context) {
 	album.Artist = updatedAlbum.Artist
 	album.Price = updatedAlbum.Price
 
-	if err := ctrl.repo.Update(album); err != nil {
+	if err := ctrl.repo.Update(c.Request.Context(), album); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update album"})
 		return
 	}
@@ -117,15 +116,15 @@ func (ctrl *AlbumController) UpdateAlbum(c *gin.Context) {
 func (ctrl *AlbumController) DeleteAlbum(c *gin.Context) {
 	// Validate and parse ID
 	idParam := c.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album ID"})
 		return
 	}
 
 	// Delete the album
-	if err := ctrl.repo.Delete(uint(id)); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+	if err := ctrl.repo.Delete(c.Request.Context(), id); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Album not found"})
 			return
 		}
