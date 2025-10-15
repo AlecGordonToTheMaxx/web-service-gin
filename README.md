@@ -40,38 +40,90 @@ web-service-gin/
 
 ## Setup
 
-1. **Install PostgreSQL**
+### Option 1: Using Docker (Recommended)
 
-   Download and install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/)
+Docker is the easiest way to get PostgreSQL running without installing it on your system.
 
-   Or using Docker:
+1. **Install Docker Desktop**
+   - Download from [docker.com](https://www.docker.com/products/docker-desktop/)
+   - Install and start Docker Desktop
+
+2. **Run PostgreSQL container**
    ```bash
-   docker run --name albums-postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres:15
+   # Pull and run PostgreSQL 15 in a container
+   docker run --name albums-postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     -p 5432:5432 \
+     -d postgres:15
    ```
 
-2. **Create the database**
+   This command:
+   - Creates a container named `albums-postgres`
+   - Sets the postgres user password to `postgres`
+   - Maps port 5432 (PostgreSQL default) to your localhost
+   - Runs in detached mode (background)
+
+3. **Create the database**
    ```bash
-   # Connect to PostgreSQL
-   psql -U postgres
-
-   # Create database
-   CREATE DATABASE albums;
-
-   # Exit psql
-   \q
+   # Execute command inside the container to create database
+   docker exec -it albums-postgres psql -U postgres -c "CREATE DATABASE albums;"
    ```
 
-3. **Clone the repository**
+4. **Verify it's running**
+   ```bash
+   # Check container status
+   docker ps
+
+   # View PostgreSQL logs
+   docker logs albums-postgres
+   ```
+
+**Useful Docker commands:**
+```bash
+# Stop PostgreSQL
+docker stop albums-postgres
+
+# Start PostgreSQL (after stopping)
+docker start albums-postgres
+
+# Remove container (delete all data)
+docker rm -f albums-postgres
+
+# Access PostgreSQL shell
+docker exec -it albums-postgres psql -U postgres
+```
+
+### Option 2: Native Installation
+
+Download and install PostgreSQL from [postgresql.org](https://www.postgresql.org/download/)
+
+Then create the database:
+```bash
+# Connect to PostgreSQL
+psql -U postgres
+
+# Create database
+CREATE DATABASE albums;
+
+# Exit psql
+\q
+```
+
+---
+
+### After PostgreSQL is Running:
+
+1. **Clone the repository**
    ```bash
    cd web-service-gin
    ```
 
-4. **Install dependencies**
+2. **Install dependencies**
    ```bash
    go mod download
    ```
 
-5. **Configure environment variables**
+3. **Configure environment variables**
    ```bash
    cp .env.example .env
    ```
@@ -93,15 +145,26 @@ web-service-gin/
    DATABASE_URL=postgres://postgres:postgres@localhost:5432/albums?sslmode=disable
    ```
 
-6. **Run the application**
+4. **Run the application**
    ```bash
    go run main.go
    ```
 
    The application will:
    - Connect to PostgreSQL
-   - Automatically create the `albums` table
+   - Automatically create the `albums` table with indexes
    - Start the server on `http://localhost:8080`
+
+5. **Test it works**
+   ```bash
+   # Create an album
+   curl -X POST http://localhost:8080/albums \
+     -H "Content-Type: application/json" \
+     -d '{"title":"Test Album","artist":"Test Artist","price":9.99}'
+
+   # Get all albums
+   curl http://localhost:8080/albums
+   ```
 
 ## API Endpoints
 
@@ -143,22 +206,22 @@ http://localhost:8080
 curl -X POST http://localhost:8080/albums \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Blue Train",
-    "artist": "John Coltrane",
-    "price": 56.99
+    "title": "The Wall",
+    "artist": "Pink Floyd",
+    "price": 24.99
   }'
 ```
 
 **Response:**
 ```json
 {
-  "ID": 1,
-  "CreatedAt": "2025-10-15T12:01:50.019Z",
-  "UpdatedAt": "2025-10-15T12:01:50.019Z",
-  "DeletedAt": null,
-  "title": "Blue Train",
-  "artist": "John Coltrane",
-  "price": 56.99
+  "id": 1,
+  "title": "The Wall",
+  "artist": "Pink Floyd",
+  "price": 24.99,
+  "created_at": "2025-10-15T12:01:50.019Z",
+  "updated_at": "2025-10-15T12:01:50.019Z",
+  "deleted_at": null
 }
 ```
 
@@ -173,22 +236,22 @@ curl http://localhost:8080/albums
 ```json
 [
   {
-    "ID": 1,
-    "CreatedAt": "2025-10-15T12:01:50.019Z",
-    "UpdatedAt": "2025-10-15T12:01:50.019Z",
-    "DeletedAt": null,
-    "title": "Blue Train",
-    "artist": "John Coltrane",
-    "price": 56.99
+    "id": 1,
+    "title": "The Wall",
+    "artist": "Pink Floyd",
+    "price": 24.99,
+    "created_at": "2025-10-15T12:01:50.019Z",
+    "updated_at": "2025-10-15T12:01:50.019Z",
+    "deleted_at": null
   },
   {
-    "ID": 2,
-    "CreatedAt": "2025-10-15T12:02:01.262Z",
-    "UpdatedAt": "2025-10-15T12:02:01.262Z",
-    "DeletedAt": null,
-    "title": "Jeru",
-    "artist": "Gerry Mulligan",
-    "price": 17.99
+    "id": 2,
+    "title": "Dark Side of the Moon",
+    "artist": "Pink Floyd",
+    "price": 22.99,
+    "created_at": "2025-10-15T12:02:01.262Z",
+    "updated_at": "2025-10-15T12:02:01.262Z",
+    "deleted_at": null
   }
 ]
 ```
@@ -203,13 +266,13 @@ curl http://localhost:8080/albums/1
 **Response:**
 ```json
 {
-  "ID": 1,
-  "CreatedAt": "2025-10-15T12:01:50.019Z",
-  "UpdatedAt": "2025-10-15T12:01:50.019Z",
-  "DeletedAt": null,
-  "title": "Blue Train",
-  "artist": "John Coltrane",
-  "price": 56.99
+  "id": 1,
+  "title": "The Wall",
+  "artist": "Pink Floyd",
+  "price": 24.99,
+  "created_at": "2025-10-15T12:01:50.019Z",
+  "updated_at": "2025-10-15T12:01:50.019Z",
+  "deleted_at": null
 }
 ```
 
@@ -220,22 +283,22 @@ curl http://localhost:8080/albums/1
 curl -X PUT http://localhost:8080/albums/1 \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "Blue Train",
-    "artist": "John Coltrane",
-    "price": 59.99
+    "title": "The Wall",
+    "artist": "Pink Floyd",
+    "price": 29.99
   }'
 ```
 
 **Response:**
 ```json
 {
-  "ID": 1,
-  "CreatedAt": "2025-10-15T12:01:50.019Z",
-  "UpdatedAt": "2025-10-15T12:02:24.206Z",
-  "DeletedAt": null,
-  "title": "Blue Train",
-  "artist": "John Coltrane",
-  "price": 59.99
+  "id": 1,
+  "title": "The Wall",
+  "artist": "Pink Floyd",
+  "price": 29.99,
+  "created_at": "2025-10-15T12:01:50.019Z",
+  "updated_at": "2025-10-15T12:02:24.206Z",
+  "deleted_at": null
 }
 ```
 
@@ -299,7 +362,7 @@ If you're on Windows and using PowerShell instead of curl:
 Invoke-RestMethod -Uri "http://localhost:8080/albums" `
   -Method Post `
   -ContentType "application/json" `
-  -Body '{"title":"Blue Train","artist":"John Coltrane","price":56.99}'
+  -Body '{"title":"The Wall","artist":"Pink Floyd","price":24.99}'
 ```
 
 ### Get All Albums
@@ -317,7 +380,7 @@ Invoke-RestMethod -Uri "http://localhost:8080/albums/1" -Method Get
 Invoke-RestMethod -Uri "http://localhost:8080/albums/1" `
   -Method Put `
   -ContentType "application/json" `
-  -Body '{"title":"Blue Train","artist":"John Coltrane","price":59.99}'
+  -Body '{"title":"The Wall","artist":"Pink Floyd","price":29.99}'
 ```
 
 ### Delete Album
