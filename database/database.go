@@ -11,12 +11,14 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver (no CGO required)
 )
 
-var DB *gorm.DB
+// Database holds the database connection and underlying SQL DB
+type Database struct {
+	DB    *gorm.DB
+	sqlDB *sql.DB
+}
 
 // Connect initializes the database connection
-func Connect() {
-	var err error
-
+func Connect() (*Database, error) {
 	// Get database name from environment variable, default to "albums.db"
 	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
@@ -26,24 +28,40 @@ func Connect() {
 	// Open database with pure Go SQLite driver
 	sqlDB, err := sql.Open("sqlite", dbName)
 	if err != nil {
-		log.Fatal("Failed to open database:", err)
+		return nil, err
 	}
 
 	// Use GORM with the existing connection
-	DB, err = gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
+	gormDB, err := gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
 	if err != nil {
-		log.Fatal("Failed to connect to database:", err)
+		sqlDB.Close()
+		return nil, err
 	}
 
 	log.Printf("Database connection established: %s\n", dbName)
+
+	return &Database{
+		DB:    gormDB,
+		sqlDB: sqlDB,
+	}, nil
 }
 
 // Migrate runs database migrations
-func Migrate() {
-	err := DB.AutoMigrate(&models.Album{})
+func (d *Database) Migrate() error {
+	err := d.DB.AutoMigrate(&models.Album{})
 	if err != nil {
-		log.Fatal("Failed to migrate database:", err)
+		return err
 	}
 
 	log.Println("Database migration completed")
+	return nil
+}
+
+// Close closes the database connection
+func (d *Database) Close() error {
+	if d.sqlDB != nil {
+		log.Println("Closing database connection...")
+		return d.sqlDB.Close()
+	}
+	return nil
 }

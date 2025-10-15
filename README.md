@@ -6,11 +6,12 @@ A RESTful API service built with Go, Gin framework, and GORM for managing an alb
 
 ```
 web-service-gin/
-  controllers/      Request handlers for albums
+  controllers/      HTTP request handlers (dependency injected)
   database/         Database connection and migrations
   models/           Data models with GORM annotations
+  repository/       Data access layer (repository pattern)
   routes/           API route definitions
-  main.go           Application entry point
+  main.go           Application entry point with graceful shutdown
   .env              Environment configuration (not in git)
   .env.example      Environment template
   README.md         This file
@@ -22,7 +23,10 @@ web-service-gin/
 - GORM ORM with SQLite database
 - Pure Go SQLite driver (no CGO dependency)
 - Environment-based configuration
-- Clean architecture (controllers/models/routes pattern)
+- Clean architecture with repository pattern
+- Dependency injection for testability
+- Graceful shutdown handling
+- Input validation and proper error handling
 - Soft delete support
 - JSON request/response handling
 
@@ -212,6 +216,43 @@ curl -X DELETE http://localhost:8080/albums/2
 }
 ```
 
+### 6. Error Responses
+
+**Invalid ID (non-numeric):**
+```bash
+curl http://localhost:8080/albums/invalid
+```
+Response (400 Bad Request):
+```json
+{
+  "error": "Invalid album ID"
+}
+```
+
+**Album Not Found:**
+```bash
+curl http://localhost:8080/albums/999
+```
+Response (404 Not Found):
+```json
+{
+  "error": "Album not found"
+}
+```
+
+**Missing Required Fields:**
+```bash
+curl -X POST http://localhost:8080/albums \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Incomplete"}'
+```
+Response (400 Bad Request):
+```json
+{
+  "error": "Key: 'Album.Artist' Error:Field validation for 'Artist' failed on the 'required' tag\nKey: 'Album.Price' Error:Field validation for 'Price' failed on the 'required' tag"
+}
+```
+
 ## Using PowerShell (Windows)
 
 If you're on Windows and using PowerShell instead of curl:
@@ -267,19 +308,31 @@ go build -o albums-api.exe main.go
 
 ## Development
 
-### Project follows clean architecture:
+### Project follows clean architecture with best practices:
 
 - **models/** - Database models with GORM annotations
+- **repository/** - Data access layer (repository pattern for abstraction)
+- **controllers/** - HTTP handlers with dependency injection
 - **database/** - Database connection and migration logic
-- **controllers/** - Business logic and request handlers
 - **routes/** - API route definitions
+
+### Key Design Patterns:
+
+1. **Repository Pattern** - Abstracts data access, making it easy to test and swap implementations
+2. **Dependency Injection** - Controllers receive dependencies (repo) via constructors
+3. **Error Handling** - Distinguishes between not-found, validation, and server errors
+4. **Input Validation** - ID parameters are validated before use
+5. **Graceful Shutdown** - Handles SIGINT/SIGTERM signals properly
+6. **Resource Cleanup** - Database connections are closed on shutdown
 
 ### Adding new endpoints:
 
 1. Add model in `models/`
-2. Update migration in `database/database.go`
-3. Create controller in `controllers/`
-4. Register routes in `routes/routes.go`
+2. Create repository interface and implementation in `repository/`
+3. Update migration in `database/database.go`
+4. Create controller with injected repository in `controllers/`
+5. Wire up dependencies in `main.go`
+6. Register routes in `routes/routes.go`
 
 ## Environment Variables
 
