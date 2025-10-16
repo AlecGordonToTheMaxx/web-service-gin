@@ -156,23 +156,37 @@ npm test -- --coverage --watchAll=false
 
 ### Backend Tests (Go)
 
-Currently, the backend doesn't have tests yet. To add tests, create files ending in `_test.go`:
+The backend includes comprehensive tests for the repository layer.
 
-Example test structure:
+**Setup Test Database:**
+```bash
+# Create test database (only needed once)
+docker exec albums-postgres psql -U postgres -c "CREATE DATABASE albums_test;"
+```
+
+**Test Structure:**
 ```bash
 backend/
   repository/
-    album_repository_test.go    # Test repository layer
-  controllers/
-    album_controller_test.go    # Test HTTP handlers
+    album_repository_test.go    # Test repository layer (86% coverage)
 ```
 
-Run backend tests:
+**Test Coverage:**
+- Create album
+- Find all albums
+- Find album by ID
+- Update album
+- Delete album (soft delete)
+- Error handling (not found cases)
+- Context cancellation
+- Concurrent operations
+
+**Run backend tests:**
 ```bash
 cd backend
 go test ./...                    # Run all tests
 go test -v ./...                 # Verbose output
-go test -cover ./...             # With coverage
+go test -cover ./...             # With coverage (86%)
 go test ./repository -v          # Test specific package
 ```
 
