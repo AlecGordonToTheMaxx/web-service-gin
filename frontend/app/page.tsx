@@ -77,14 +77,20 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 to-purple-900">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+      >
         <div className="text-white text-2xl">Loading albums...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-purple-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div
+      className="min-h-screen py-12 px-4 sm:px-6 lg:px-8"
+      style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+    >
       <div className="max-w-7xl mx-auto">
         <h1 className="text-5xl font-bold text-white text-center mb-2">Album Manager</h1>
         <p className="text-purple-200 text-center mb-12">Albums ({albums.length})</p>
