@@ -2,10 +2,6 @@ package main
 
 import (
 	"context"
-	"example/web-service-gin/controllers"
-	"example/web-service-gin/database"
-	"example/web-service-gin/repository"
-	"example/web-service-gin/routes"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"web-service-gin/backend/controllers"
+	"web-service-gin/backend/database"
+	"web-service-gin/backend/middleware"
+	"web-service-gin/backend/repository"
+	"web-service-gin/backend/routes"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -46,6 +47,9 @@ func main() {
 
 	// Create Gin router
 	router := gin.Default()
+
+	// Add CORS middleware
+	router.Use(middleware.CORS())
 
 	// Setup routes
 	routes.SetupRoutes(router, albumCtrl)

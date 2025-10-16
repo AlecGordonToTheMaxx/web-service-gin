@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"errors"
-	"example/web-service-gin/models"
-	"example/web-service-gin/repository"
+	"web-service-gin/backend/models"
+	"web-service-gin/backend/repository"
 	"net/http"
 	"strconv"
 

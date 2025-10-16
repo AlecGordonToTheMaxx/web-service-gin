@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"example/web-service-gin/controllers"
+	"web-service-gin/backend/controllers"
 
 	"github.com/gin-gonic/gin"
 )

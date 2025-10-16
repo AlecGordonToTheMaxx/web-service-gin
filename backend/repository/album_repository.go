@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
-	"example/web-service-gin/models"
+	"web-service-gin/backend/models"
 	"time"
 
 	"github.com/jackc/pgx/v5"
