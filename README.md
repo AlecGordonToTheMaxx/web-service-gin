@@ -178,7 +178,14 @@ go test ./repository -v          # Test specific package
 
 ### Frontend Tests (React)
 
-The frontend includes Jest and React Testing Library. The default test file is `App.test.js`.
+The frontend includes Jest and React Testing Library. The test file `App.test.js` includes:
+
+**Test Coverage:**
+- ✅ Renders Album Manager header
+- ✅ Renders Add New Album form with inputs
+- ✅ Displays albums when loaded from API
+- ✅ Shows "no albums" message when list is empty
+- ✅ Displays error message when API fails
 
 Run frontend tests:
 ```bash
