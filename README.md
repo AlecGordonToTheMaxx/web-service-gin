@@ -1,6 +1,6 @@
 # Album Manager - Full Stack Application
 
-A full-stack album management application with a Go Gin + PostgreSQL backend and React frontend.
+A modern full-stack album management application with a Go Gin + PostgreSQL backend and Next.js + TypeScript frontend.
 
 ## Project Structure
 
@@ -14,11 +14,13 @@ web-service-gin/
     repository/     Data access layer
     routes/         API route definitions
     main.go         Application entry point
-  frontend/         React web application
-    src/
-      services/     API service layer
-      App.js        Main React component
-      App.css       Styling
+  frontend/         Next.js web application
+    app/            Next.js app directory
+      page.tsx      Main page component
+      layout.tsx    Root layout
+    types/          TypeScript type definitions
+    services/       API service layer
+    tests/e2e/      Playwright E2E tests
 ```
 
 ## Technologies
@@ -30,9 +32,12 @@ web-service-gin/
 - **PostgreSQL** - Database
 
 ### Frontend
-- **React** - UI library
-- **JavaScript (ES6+)** - Programming language
-- **Fetch API** - HTTP client
+- **Next.js 15** - React framework with SSR/SSG
+- **TypeScript** - Type-safe programming language
+- **React 19** - UI library
+- **Tailwind CSS** - Utility-first CSS framework
+- **Biome** - Fast linter and formatter
+- **Playwright** - E2E testing framework
 
 ## Quick Start
 
@@ -79,8 +84,11 @@ cd frontend
 # Install dependencies
 npm install
 
+# Configure environment (copy and edit .env.example to .env.local)
+cp .env.example .env.local
+
 # Start development server
-npm start
+npm run dev
 ```
 
 Frontend will start on `http://localhost:3000`
@@ -136,20 +144,26 @@ go build -o albums-api main.go
 ```bash
 cd frontend
 
-# Start development server
-npm start
+# Start development server with Turbopack
+npm run dev
 
 # Build for production
 npm run build
 
-# Run tests (interactive watch mode)
+# Start production server
+npm start
+
+# Lint code with Biome
+npm run lint
+
+# Lint and fix code
+npm run lint:fix
+
+# Format code with Biome
+npm run format
+
+# Run E2E tests with Playwright
 npm test
-
-# Run tests once (for CI/CD)
-npm test -- --watchAll=false
-
-# Run tests with coverage
-npm test -- --coverage --watchAll=false
 ```
 
 ## Testing
@@ -190,40 +204,51 @@ go test -cover ./...             # With coverage (86%)
 go test ./repository -v          # Test specific package
 ```
 
-### Frontend Tests (React)
+### Frontend Tests (Playwright E2E)
 
-The frontend includes Jest and React Testing Library. The test file `App.test.js` includes:
+The frontend includes comprehensive E2E tests using Playwright. The test file `tests/e2e/albums.spec.ts` includes:
 
 **Test Coverage:**
-- ✅ Renders Album Manager header
-- ✅ Renders Add New Album form with inputs
-- ✅ Displays albums when loaded from API
-- ✅ Shows "no albums" message when list is empty
-- ✅ Displays error message when API fails
+- ✅ Display Album Manager title
+- ✅ Create new album
+- ✅ Edit existing album
+- ✅ Delete album with confirmation
+- ✅ Cancel editing
+- ✅ Form validation
+- ✅ Album count updates
 
-Run frontend tests:
+**Prerequisites:**
+Both backend and frontend must be running for E2E tests:
+```bash
+# Terminal 1: Start backend
+cd backend && go run main.go
+
+# Terminal 2: Start frontend
+cd frontend && npm run dev
+
+# Terminal 3: Run tests
+cd frontend && npm test
+```
+
+**Run frontend tests:**
 ```bash
 cd frontend
 
-# Interactive watch mode (default)
+# Run all tests
 npm test
 
-# Run once (for CI/CD)
-npm test -- --watchAll=false
+# Run in headed mode (see browser)
+npx playwright test --headed
 
-# With coverage report
-npm test -- --coverage --watchAll=false
+# Run specific test file
+npx playwright test albums.spec.ts
 
-# Update snapshots
-npm test -- -u
+# Run tests in UI mode
+npx playwright test --ui
+
+# Show test report
+npx playwright show-report
 ```
-
-**Test Commands While Running:**
-- Press `a` to run all tests
-- Press `f` to run only failed tests
-- Press `q` to quit watch mode
-- Press `p` to filter by filename
-- Press `t` to filter by test name
 
 ## Environment Variables
 
@@ -239,10 +264,9 @@ SERVER_PORT=8080
 GIN_MODE=debug
 ```
 
-### Frontend
-The API URL is configured in `frontend/src/services/albumService.js`:
-```javascript
-const API_URL = 'http://localhost:8080';
+### Frontend (.env.local)
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
 ```
 
 ## Architecture Highlights
@@ -256,11 +280,15 @@ const API_URL = 'http://localhost:8080';
 - **Graceful Shutdown** - Handles termination signals properly
 
 ### Frontend
+- **Next.js App Router** - Modern file-based routing with SSR/SSG
+- **TypeScript** - Type safety and better developer experience
 - **Component-based** - Reusable React components
 - **State Management** - React hooks (useState, useEffect)
-- **Service Layer** - Centralized API communication
+- **Service Layer** - Centralized API communication with type safety
 - **Error Handling** - User-friendly error messages
-- **Responsive Design** - Mobile-first CSS
+- **Responsive Design** - Tailwind CSS utility classes
+- **Biome** - Fast linting and formatting
+- **Playwright** - Comprehensive E2E testing
 
 ## Deployment
 
@@ -286,7 +314,7 @@ npm run build
 cd backend && go run main.go
 
 # Terminal 2: Frontend
-cd frontend && npm start
+cd frontend && npm run dev
 ```
 
 ### Run Tests
@@ -294,14 +322,18 @@ cd frontend && npm start
 # Backend tests
 cd backend && go test ./...
 
-# Frontend tests (watch mode)
+# Frontend E2E tests (requires backend + frontend running)
 cd frontend && npm test
+```
 
-# Frontend tests (single run)
-cd frontend && npm test -- --watchAll=false
+### Lint and Format
+```bash
+# Backend (Go fmt)
+cd backend && go fmt ./...
 
-# Frontend tests with coverage
-cd frontend && npm test -- --coverage --watchAll=false
+# Frontend (Biome)
+cd frontend && npm run lint
+cd frontend && npm run format
 ```
 
 ### Build for Production
@@ -344,4 +376,4 @@ MIT
 
 ---
 
-Made with ❤️ using Go, Gin, PostgreSQL, and React
+Made with ❤️ using Go, Gin, PostgreSQL, Next.js, TypeScript, and React
