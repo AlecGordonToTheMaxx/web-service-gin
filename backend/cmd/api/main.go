@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"web-service-gin/backend/internal/album"
+	"web-service-gin/backend/internal/chat"
 	"web-service-gin/backend/internal/middleware"
 	"web-service-gin/backend/internal/platform/database"
 
@@ -44,6 +45,10 @@ func main() {
 	albumRepo := album.NewRepository(db.Pool)
 	albumHandler := album.NewHandler(albumRepo)
 
+	// Initialize chat domain
+	chatService := chat.NewService(albumRepo)
+	chatHandler := chat.NewHandler(chatService)
+
 	// Create Gin router
 	router := gin.Default()
 
@@ -53,6 +58,9 @@ func main() {
 	// Setup routes
 	albumGroup := router.Group("/albums")
 	albumHandler.RegisterRoutes(albumGroup)
+
+	chatGroup := router.Group("/chat")
+	chatHandler.RegisterRoutes(chatGroup)
 
 	// Get server port from environment variable, default to "8080"
 	port := os.Getenv("SERVER_PORT")
