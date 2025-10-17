@@ -31,7 +31,7 @@ export default function ChatPage() {
   }, [messages, streamingMessage]);
 
   const sendMessage = useCallback(async (content: string) => {
-    // Add user message
+    // Add user message immediately
     const userMessage: Message = {
       id: Date.now(),
       content,
@@ -42,49 +42,50 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    try {
-      // Convert messages to API format
-      const apiMessages: ChatMessage[] = messages
+    // Use functional setState to get the latest messages
+    setMessages((currentMessages) => {
+      // Build API messages from the actual current state (includes userMessage)
+      const apiMessages: ChatMessage[] = currentMessages
         .filter((m) => m.role !== 'system')
         .map((m) => ({
           role: m.role,
           content: m.content,
         }));
 
-      // Add current user message
-      apiMessages.push({
-        role: 'user',
-        content,
-      });
-
       // Call API
-      const response = await chatService.sendMessage(apiMessages);
+      chatService
+        .sendMessage(apiMessages)
+        .then((response) => {
+          // Add assistant response
+          const assistantMessage: Message = {
+            id: Date.now() + 1,
+            content: response.message,
+            role: 'assistant',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        })
+        .catch((error) => {
+          console.error('Error sending message:', error);
 
-      // Add assistant response
-      const assistantMessage: Message = {
-        id: Date.now() + 1,
-        content: response.message,
-        role: 'assistant',
-        timestamp: new Date(),
-      };
+          // Add error message
+          const errorMessage: Message = {
+            id: Date.now() + 1,
+            content:
+              'Sorry, I encountered an error processing your request. Please try again.',
+            role: 'assistant',
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
 
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-
-      // Add error message
-      const errorMessage: Message = {
-        id: Date.now() + 1,
-        content: 'Sorry, I encountered an error processing your request. Please try again.',
-        role: 'assistant',
-        timestamp: new Date(),
-      };
-
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [messages]);
+      // Return current state unchanged (we'll update when API responds)
+      return currentMessages;
+    });
+  }, []);
 
   const quickActions = [
     'Show me all albums',
