@@ -16,9 +16,7 @@ export default function ChatPage() {
       timestamp: new Date(),
     },
   ]);
-  const [streamingMessage, setStreamingMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isStreaming, setIsStreaming] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,7 +26,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages]);
 
   const sendMessage = useCallback(async (content: string) => {
     // Add user message immediately
@@ -120,19 +118,6 @@ export default function ChatPage() {
               <MessageComponent key={message.id} message={message} />
             ))}
 
-            {/* Streaming message */}
-            {isStreaming && streamingMessage && (
-              <MessageComponent
-                message={{
-                  id: 0,
-                  content: streamingMessage,
-                  role: 'assistant',
-                  timestamp: new Date(),
-                }}
-                isStreaming={true}
-              />
-            )}
-
             {/* Loading indicator */}
             {isLoading && (
               <div className="flex items-center gap-3 p-4">
@@ -158,7 +143,7 @@ export default function ChatPage() {
                   <button
                     key={index}
                     onClick={() => sendMessage(action)}
-                    disabled={isLoading || isStreaming}
+                    disabled={isLoading}
                     className="text-sm px-3 py-1 bg-purple-100 text-purple-700 rounded-full hover:bg-purple-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {action}
@@ -172,7 +157,6 @@ export default function ChatPage() {
           <ChatInput
             onSendMessage={sendMessage}
             isLoading={isLoading}
-            isStreaming={isStreaming}
           />
         </div>
       </div>
